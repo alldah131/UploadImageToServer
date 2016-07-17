@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">UploadImageToServer</string>
+    <string name="action_settings">Settings</string>
+    <string name="directory_name_corp_chat">Settings</string>
+    <string name="directory_name_images">Settings</string>
+
+</resources>
