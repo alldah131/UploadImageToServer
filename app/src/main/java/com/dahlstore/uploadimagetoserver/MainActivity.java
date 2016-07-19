@@ -7,9 +7,11 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.test.mock.MockPackageManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
@@ -24,10 +26,10 @@ import java.io.IOException;
 public class MainActivity extends AppCompatActivity {
     private final String TAG = this.getClass().getName();
     private static final int ACTIVITY_START_CAMERA_APP  = 0;
-    private static final int REQUEST_EXTERNAL_STOREAGE_RESULT=1;
+    private static final int REQUEST_CODE_PERMISSION = 2;
     ImageView ivCamera, ivGallery, ivUpload, ivStar;
     CameraPhoto cameraPhoto;
-
+    private String []  mPermission = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,29 +38,27 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         cameraPhoto = new CameraPhoto(this);
-
         ivCamera = (ImageView) findViewById(R.id.ivCamera);
         ivGallery = (ImageView) findViewById(R.id.ivGallery);
         ivUpload = (ImageView) findViewById(R.id.ivUpload);
         ivStar = (ImageView) findViewById(R.id.ivStar);
+
         ivCamera.setOnClickListener(new View.OnClickListener() {
             @TargetApi(Build.VERSION_CODES.M)
             @Override
             public void onClick(View v) {
-                if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
 
-                    callCameraApp();
 
-                } else {
-                    if(shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)){
-                        Toast.makeText(MainActivity.this, "External storage permission required to save images",
-                                Toast.LENGTH_SHORT).show();
-                    }
-                    requestPermissions(new String[]
-                            {Manifest.permission.WRITE_EXTERNAL_STORAGE},REQUEST_EXTERNAL_STOREAGE_RESULT);
+                    if(ActivityCompat.checkSelfPermission(MainActivity.this, mPermission[0])
+                            != MockPackageManager.PERMISSION_GRANTED ||
+                            ActivityCompat.checkSelfPermission(MainActivity.this, mPermission[1])
+                                    != MockPackageManager.PERMISSION_GRANTED)
+                          {
+
+                              ActivityCompat.requestPermissions(MainActivity.this,
+                                      mPermission, REQUEST_CODE_PERMISSION);
 
                 }
-
             }
 
 
@@ -66,18 +66,22 @@ public class MainActivity extends AppCompatActivity {
     }
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int [] grantResults){
-            if(requestCode == REQUEST_EXTERNAL_STOREAGE_RESULT){
-                if(grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                    callCameraApp();
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if(requestCode == REQUEST_CODE_PERMISSION)
+        {
+            if(grantResults.length == 2 &&
+                grantResults[0] == MockPackageManager.PERMISSION_GRANTED &&
+                        grantResults[1] == MockPackageManager.PERMISSION_GRANTED){
+                callCameraApp();
+        }
+
                 }
                 else {
                     Toast.makeText(MainActivity.this, "External write permission has not been granted, cannot save images",
                             Toast.LENGTH_SHORT).show();
                 }
-            } else {
-                super.onRequestPermissionsResult(requestCode, permissions,grantResults);
             }
-    }
+
 
 
     private void callCameraApp() {
@@ -100,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
             if(requestCode == ACTIVITY_START_CAMERA_APP){
                 String photoPath = cameraPhoto.getPhotoPath();
                 try {
-                    Bundle extras = data.getExtras(); 
+
                     Bitmap photoCapturedBitmap = ImageLoader.init().from(photoPath).requestSize(512,512).getBitmap();
                     ivStar.setImageBitmap(photoCapturedBitmap);
                 } catch (FileNotFoundException e) {
